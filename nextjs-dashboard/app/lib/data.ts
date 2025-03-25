@@ -50,6 +50,28 @@ export async function fetchLatestInvoices() {
   }
 }
 
+export async function deleteDuplicateInvoices() {
+  try {
+    await sql`
+      WITH CTE AS (
+        SELECT id,
+               ROW_NUMBER() OVER (
+                 PARTITION BY customer_id, amount 
+                 ORDER BY date DESC
+               ) AS row_num
+        FROM invoices
+      )
+      DELETE FROM invoices
+      WHERE id IN (SELECT id FROM CTE WHERE row_num > 1);
+    `;
+
+    console.log('Duplicate invoices deleted successfully.');
+  } catch (error) {
+    console.error('Database Error:', error);
+    throw new Error('Failed to delete duplicate invoices.');
+  }
+}
+
 export async function fetchCardData() {
   try {
     // You can probably combine these into a single SQL query
